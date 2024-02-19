@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import
 {
+    Alert,
     SafeAreaView,
     View,
     Image,
@@ -13,14 +14,141 @@ import
 
 import { useNavigation } from '@react-navigation/native';
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { MaterialIcons, AntDesign } from '@expo/vector-icons';
+
+import useHost from '../hooks/useHost';
+
+import axios from 'axios';
 
 const LoginScreen = () =>
 {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [login, setLogin] = useState(false);
 
     const navigation = useNavigation();
+
+    const myPromise = useHost();
+
+    const appEnv = process.env.EXPO_PUBLIC_APP_ENV;
+
+    const deployHost = process.env.EXPO_PUBLIC_DEPLOY_HOST;
+
+    const apiKey = process.env.EXPO_PUBLIC_API_KEY;
+    const apiSecret = process.env.EXPO_PUBLIC_API_SECRET;
+
+    const handleLogin = async () =>
+    {
+        try
+        {
+            setLogin(true);
+
+            const usuario = { email, password }
+
+            const { host } = await myPromise();
+
+            const { data, status } = await axios.post(`${host}/login`, usuario);
+
+            const { message, token } = data;
+
+            if (status === 200)
+            {
+                AsyncStorage.setItem('authToken', token);
+
+                Alert.alert('Mensaje', message,
+                [
+                    {
+                        text: 'Aceptar',
+                        onPress: () =>
+                        {
+                            setEmail('');
+                            setPassword('');
+                            setLogin(false);
+
+                            navigation.navigate('TabNavigator');
+                        },
+                        style: 'default'
+                    }
+                ]);
+            }
+        }
+        catch (e)
+        {
+            console.log(e);
+
+            !e.response && Alert.alert('Error de inicio de sesión', 'Se produjo un error inesperado. Intenta iniciar sesión de nuevo.',
+            [
+                {
+                    text: 'Aceptar',
+                    onPress: () =>
+                    {
+                        setEmail('');
+                        setPassword('');
+                        setLogin(false);
+                    },
+                    style: 'default'
+                }
+            ]);
+
+            if (e.response)
+            {
+                const { data, status } = e.response;
+
+                const { message } = data;
+
+                status === 500 ?
+                    Alert.alert('Error de inicio de sesión', 'Se produjo un error inesperado. Intenta iniciar sesión de nuevo.',
+                    [
+                        {
+                            text: 'Aceptar',
+                            onPress: () =>
+                            {
+                                setEmail('');
+                                setPassword('');
+                                setLogin(false);
+                            },
+                            style: 'default'
+                        }
+                    ]) :
+                    Alert.alert('Mensaje', message,
+                    [
+                        {
+                            text: 'Aceptar',
+                            onPress: () => setLogin(false),
+                            style: 'default'
+                        }
+                    ]);
+            }
+        }
+    }
+
+    const loginStatus = async () =>
+    {
+        try
+        {
+            if (appEnv === undefined || !apiKey || !apiSecret)
+            {
+                return Alert.alert('Error de la aplicación', 'La aplicación no se pudo iniciar correctamente.', [{ text: 'Aceptar', style: 'default' }]);
+            }
+
+            const token = await AsyncStorage.getItem('authToken');
+
+            token && navigation.replace('TabNavigator');
+        }
+        catch (e)
+        {
+            console.log(e);
+
+            Alert.alert('Error de inicio de sesión', 'Se produjo un error inesperado. Intenta iniciar sesión de nuevo.', [{ text: 'Aceptar', style: 'default' }]);
+        }
+    }
+
+    useEffect(() =>
+    {
+        loginStatus();
+    }, []);
 
     return (
         <SafeAreaView
@@ -33,8 +161,8 @@ const LoginScreen = () =>
         >
             <View>
                 <Image
-                    style={{ width: 150, height: 150 }}
-                    source={{ uri: 'https://assets.stickpng.com/thumbs/6160562276000b00045a7d97.png' }}
+                    style={{ width: 300, height: 150 }}
+                    source={require('../../assets/ecommerce.png')}
                 />
             </View>
             
@@ -43,7 +171,7 @@ const LoginScreen = () =>
                     <Text
                         style={
                         {
-                            fontSize: 15,
+                            fontSize: 17.5,
                             fontWeight: 'bold',
                             marginTop: 10,
                             color: "#041E42"
@@ -77,7 +205,7 @@ const LoginScreen = () =>
                                 color: 'gray',
                                 marginVertical: 10,
                                 width: 300,
-                                fontSize: email ? 15 : 15
+                                fontSize: email ? 17.5 : 17.5
                             }}
                         />
                     </View>
@@ -108,7 +236,7 @@ const LoginScreen = () =>
                                 color: 'gray',
                                 marginVertical: 10,
                                 width: 300,
-                                fontSize: email ? 15 : 15
+                                fontSize: password ? 17.5 : 17.5
                             }}
                         />
                     </View>
@@ -122,15 +250,12 @@ const LoginScreen = () =>
                         alignItems: 'center',
                         justifyContent: 'space-between'
                     }}
-                >
-                    <Text>{'Keep me logged in'}</Text>
-
-                    <Text style={{ color: '#007FFF', fontWeight: 'bold' }}>{'Forgot password?'}</Text>
-                </View>
+                />
 
                 <View style={{ marginTop: 75 }} />
 
                 <Pressable
+                    onPress={() => !login && handleLogin()}
                     style={
                     {
                         width: 200,
@@ -146,7 +271,7 @@ const LoginScreen = () =>
                         {
                             textAlign: 'center',
                             color: 'white',
-                            fontSize: 15,
+                            fontSize: 17.5,
                             fontWeight: 'bold'
                         }}
                     >

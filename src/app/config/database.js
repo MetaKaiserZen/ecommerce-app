@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 
-const mongoose = require('mongoose');
+const { connect } = require('mongoose');
 
 const app = require('../app');
 
@@ -12,7 +12,7 @@ const database =
     {
         try
         {
-            await mongoose.connect(process.env.MONGODB);
+            await connect(process.env.MONGODB);
 
             console.log('Connected to MongoDB');
 

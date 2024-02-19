@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import
 {
+    Alert,
     SafeAreaView,
     View,
     Image,
@@ -20,13 +21,119 @@ import
     AntDesign
 } from '@expo/vector-icons';
 
+import useHost from '../hooks/useHost';
+
+import axios from 'axios';
+
 const RegisterScreen = () =>
 {
     const [nombre, setNombre] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [register, setRegister] = useState(false);
 
     const navigation = useNavigation();
+
+    const myPromise = useHost();
+
+    const appEnv = process.env.EXPO_PUBLIC_APP_ENV;
+
+    const deployHost = process.env.EXPO_PUBLIC_DEPLOY_HOST;
+
+    const handleRegister = async () =>
+    {
+        try
+        {
+            setRegister(true);
+
+            const usuario =
+            {
+                nombre,
+                email,
+                password
+            }
+
+            const { host } = await myPromise();
+
+            const { data, status } = await axios.post(`${host}/register`,
+            {
+                host: appEnv === 'local' ? 'http://localhost:3000' : deployHost,
+                ...usuario
+            });
+
+            const { message } = data;
+
+            if (status === 201)
+            {
+                Alert.alert('Mensaje', message,
+                [
+                    {
+                        text: 'Aceptar',
+                        onPress: () =>
+                        {
+                            setNombre('');
+                            setEmail('');
+                            setPassword('');
+                            setRegister(false);
+
+                            navigation.navigate('LoginScreen');
+                        },
+                        style: 'default'
+                    }
+                ]);
+            }
+        }
+        catch (e)
+        {
+            console.log(e);
+
+            !e.response && Alert.alert('Error al enviar la solicitud', 'Se produjo un error inesperado. Vuelve a intentarlo.',
+            [
+                {
+                    text: 'Aceptar',
+                    onPress: () =>
+                    {
+                        setNombre('');
+                        setEmail('');
+                        setPassword('');
+                        setRegister(false);
+                    },
+                    style: 'default'
+                }
+            ]);
+
+            if (e.response)
+            {
+                const { data, status } = e.response;
+
+                const { message } = data;
+
+                status === 500 ?
+                    Alert.alert('Error al enviar la solicitud', 'Se produjo un error inesperado. Vuelve a intentarlo.',
+                    [
+                        {
+                            text: 'Aceptar',
+                            onPress: () =>
+                            {
+                                setNombre('');
+                                setEmail('');
+                                setPassword('');
+                                setRegister(false);
+                            },
+                            style: 'default'
+                        }
+                    ]) :
+                    Alert.alert('Mensaje', message,
+                    [
+                        {
+                            text: 'Aceptar',
+                            onPress: () => setRegister(false),
+                            style: 'default'
+                        }
+                    ]);
+            }
+        }
+    }
 
     return (
         <SafeAreaView
@@ -39,8 +146,8 @@ const RegisterScreen = () =>
         >
             <View>
                 <Image
-                    style={{ width: 150, height: 150 }}
-                    source={{ uri: 'https://assets.stickpng.com/thumbs/6160562276000b00045a7d97.png' }}
+                    style={{ width: 300, height: 150 }}
+                    source={require('../../assets/ecommerce.png')}
                 />
             </View>
             
@@ -49,13 +156,13 @@ const RegisterScreen = () =>
                     <Text
                         style={
                         {
-                            fontSize: 15,
+                            fontSize: 17.5,
                             fontWeight: 'bold',
                             marginTop: 10,
                             color: "#041E42"
                         }}
                     >
-                        {'Register to Your Account'}
+                        {'Register Your Account'}
                     </Text>
                 </View>
 
@@ -83,7 +190,7 @@ const RegisterScreen = () =>
                                 color: 'gray',
                                 marginVertical: 10,
                                 width: 300,
-                                fontSize: nombre ? 15 : 15
+                                fontSize: nombre ? 17.5 : 17.5
                             }}
                         />
                     </View>
@@ -113,7 +220,7 @@ const RegisterScreen = () =>
                                 color: 'gray',
                                 marginVertical: 10,
                                 width: 300,
-                                fontSize: email ? 15 : 15
+                                fontSize: email ? 17.5 : 17.5
                             }}
                         />
                     </View>
@@ -144,7 +251,7 @@ const RegisterScreen = () =>
                                 color: 'gray',
                                 marginVertical: 10,
                                 width: 300,
-                                fontSize: email ? 15 : 15
+                                fontSize: email ? 17.5 : 17.5
                             }}
                         />
                     </View>
@@ -158,15 +265,12 @@ const RegisterScreen = () =>
                         alignItems: 'center',
                         justifyContent: 'space-between'
                     }}
-                >
-                    <Text>{'Keep me logged in'}</Text>
-
-                    <Text style={{ color: '#007FFF', fontWeight: 'bold' }}>{'Forgot password?'}</Text>
-                </View>
+                />
 
                 <View style={{ marginTop: 75 }} />
 
                 <Pressable
+                    onPress={() => !register && handleRegister()}
                     style={
                     {
                         width: 200,
@@ -182,11 +286,11 @@ const RegisterScreen = () =>
                         {
                             textAlign: 'center',
                             color: 'white',
-                            fontSize: 15,
+                            fontSize: 17.5,
                             fontWeight: 'bold'
                         }}
                     >
-                        {'Login'}
+                        {'Register'}
                     </Text>
                 </Pressable>
 
